@@ -1,0 +1,16 @@
+{
+    "baseHost":"beta.familysearch.org",
+
+    "devKey":"V0NRWS03SjFRLUdLVlYtN0ROTS1TUTVNLTlRNUgtSlgzSC1DTUpL",
+    "globalTimeout":20000,
+    "localCode" : false,
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/fs-eng/mailbox-ui-acceptance"
+    },
+    "license": "BSD-2-Clause",
+    "runInParallel":false,
+    "suites" : {
+        "home" : ["tests/*Spec.js"]
+    }
+}

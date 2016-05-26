@@ -1,0 +1,16 @@
+node_modules
+target
+.DS_Store
+builtAssets
+reports
+.s3creds
+.monitor
+*.esproj
+.idea
+*.iml
+*.ipr
+.env
+.env-int
+.env-beta
+*.log
+

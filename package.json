@@ -1,0 +1,21 @@
+{
+    "name": "qa-shared-example",
+    "version": "1.0.0",
+    "keywords": ["util", "functional", "server", "client", "browser"],
+    "contributors": [],
+    "dependencies": {
+        "chai": "^3.5.0",
+        "chai-as-promised": "^5.1.0",
+        "chance": "^0.8.0",
+        "jasmine-reporters": "^2.1.1",
+        "jasmine-spec-reporter": "^2.4.0",
+        "mocha": "^2.3.4",
+        "promise": "^7.1.1",
+        "protractor-jasmine2-html-reporter": "0.0.5",
+        "q": "^1.4.1",
+        "simple-git": "^1.17.0",
+        "superagent": "^1.7.0",
+        "superagent-promise": "^1.1.0",
+        "qa-shared-base": "git+https://2e32c2ea3ff8411aea3e52ea244206f23a0987fb:x-oauth-basic@github.com/fs-eng/qa-shared-base.git"
+    }
+}

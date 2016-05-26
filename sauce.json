@@ -1,0 +1,19 @@
+{
+    "baseHost":"beta.familysearch.org",
+    "devKey":"V0NRWS03SjFRLUdLVlYtN0ROTS1TUTVNLTlRNUgtSlgzSC1DTUpL",
+    "environment":"[{\"browserName\":\"chrome\",\"platform\":\"Windows 7\",\"name\":\"Protractor test\"}]",
+    "sauceUser": "cmJpcmNo",
+    "sauceKey":"NDliZWQwMzgtOTlmNS00YWM0LWFkZjktMDYyNjliNWNkZDQ5",
+    "globalTimeout":20000,
+    "location":"SAUCE",
+    "localCode" : false,
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/fs-eng/mailbox-ui-acceptance"
+    },
+    "license": "BSD-2-Clause",
+    "runInParallel":true,
+    "suites" : {
+        "home" : ["tests/testSpec.js"]
+    }
+}
