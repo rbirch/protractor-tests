@@ -3,23 +3,24 @@
  */
 var q = require('q');
 var TestThread = require('./TestThread.js');
+var TestMessage = require('./TestMessage.js');
 var TestUser = require('./TestUser.js');
 var base = new (require('qa-shared-base/lib/protractor-lib.js'));
 
-var TestHelper = function() {
-    TestHelper.prototype.testUsers = [];
-    TestHelper.prototype.testThreads = [];
-    TestHelper.prototype.commonUser = undefined;
-    var commonUser;
 
-    var TOTAL_USERS = 3;
-    var TOTAL_THREADS = 5;
+var TestHelper = function() {
+    TEST_USERS = [];
+    TestHelper.prototype.testThreads = [];
+
+    var TOTAL_USERS = 2;
+    var TOTAL_THREADS = 12;
 
     this.setup = function() {
         try {
+            this.commonUser = new TestUser(browser.testEnv.testUser);
             TestHelper.prototype.commonUser = this.commonUser;
             console.log('common user: ' + this.commonUser.cisId);
-            TestHelper.prototype.testUsers.push({key: this.commonUser.cisId, value: this.commonUser});
+
         }catch(error) {
             console.log(error);
         }
@@ -58,11 +59,11 @@ var TestHelper = function() {
     function getLoggedInUser() {
         var deferred = q.defer();
         deferred.promise = base.loginService.getLoggedInUserFromTestDataAPI({lockUser: true, accountType: "MEMBER"});
-        deferred.promise.then(function onSuccess(testUser) {
-            console.log('got logged in user ' + testUser.cisId);
-            TestHelper.prototype.testUsers.push({key: testUser.cisId, value: testUser});
+        deferred.promise.then(function onSuccess(user) {
+            console.log('got logged in user ' + user.cisId);
+            TEST_USERS.push(new TestUser(user));
 
-            if (TestHelper.prototype.testUsers.length >= TOTAL_USERS) {
+            if(TEST_USERS.length >= TOTAL_USERS) {
                 deferred.resolve();
                 return deferred.promise;
             }
@@ -70,7 +71,7 @@ var TestHelper = function() {
             return deferred.promise;
         },
         function onFailure(err) {
-            console.log('failed.. ' + err);
+            console.log('failed.. ' + err.message);
             deferred.reject();
             return deferred.promise;
         });
@@ -84,64 +85,131 @@ var TestHelper = function() {
         var promises = [];
 
         for(var idx = 0; idx < TOTAL_THREADS; idx++) {
-            deferred.promise = postNewThread();
+            deferred.promise = postNewThread(idx);
             promises.push(deferred.promise);
         }
         return q.all(promises);
     }
 
-    function postNewThread() {
+    function postNewThread(idx) {
         var deferred = q.defer();
+        var promises = [];
 
-        var sender = TestHelper.prototype.commonUser;
-        var receiverIds = [TestHelper.prototype.testUsers[1].key, TestHelper.prototype.testUsers[2].key];
-        var threadSubject = "web test subject";
-        var threadAbout = "about";
+        var sender = TestHelper.prototype.commonUser; //new TestUser(TestHelper.prototype.commonUser);
+        var receiverIds = [TEST_USERS[0].cisId, TEST_USERS[1].cisId];
+        var threadSubject = 'web test subject ' + getRandomString();
+        var threadAbout = idx + '_about ' + getRandomString();
         var aboutUrl = "http://familysearch.org/lyrcs/hokeypokey.html";
-        var messageBody = "threadBody";
-        var thread = new TestThread(sender, receiverIds, threadSubject, threadAbout, aboutUrl, messageBody);
+        var messageBody = getRandomString();
+        var testThread = new TestThread(sender, receiverIds, threadSubject, threadAbout, aboutUrl, messageBody);
 
-        thread.post(function processResponse(response) {
-            var location = response.headers.location;
-            thread.location = location;
-            thread.id = location.substring(location.lastIndexOf('/') + 1);
-            TestHelper.prototype.testThreads.push({key: thread.id, value: thread});
+        var promise = testThread.post(function processResponse(testThread) {
+            TestHelper.prototype.testThreads.push(testThread);
 
-            if(TestHelper.prototype.testThreads.length >= MAX_THREADS) {
+            // now add some messages
+            for(var idx = 0; idx < 2; idx++) {
+                postNewMessage(testThread);
+            }
+
+            if(TestHelper.prototype.testThreads.length >= TOTAL_THREADS) {
+                console.log(TOTAL_THREADS + ' threads have been created.. resolving');
                 deferred.resolve();
             }
         });
-        return deferred.promise;
+        promises.push(promise);
+        return q.all(promises);
+    }
+
+    function postNewMessage(testThread) {
+        var promises = [];
+        var author = getParticipantForThread(testThread);
+        var messageBody = getRandomString();
+        var testMessage = new TestMessage(testThread, messageBody, author);
+        var promise = testMessage.post(function processResponse(testMessage) {
+            testThread.addMessage(testMessage);
+        });
+        promises.push(promise);
+        return promises;
+    }
+
+    this.getParticipantForThread = function(testThread) {
+        return getParticipantForThread(testThread);
+    };
+
+    function getParticipantForThread(testThread) {
+        var idx = Math.floor(Math.random() * (TEST_USERS.length));
+        return TEST_USERS[idx];
+
+        //var idx = Math.floor(Math.random() * (testThread.participantIds.length));
+        //return TEST_USERS.find(function(user) {
+        //    return user.cisId === testThread.participantIds[idx];
+        //    if(user.cisId === testThread.participantIds[idx]) {
+        //        return user;
+        //    }
+        //});
     }
 
     function softDeleteUserThreads() {
         var deferred = q.defer();
         var promises = [];
         var duplicates = [];
-        TestHelper.prototype.testUsers.forEach(function(testUser) {
-            var user = new TestUser(testUser.value);
+        var users = TEST_USERS.slice();
+        users.push(TestHelper.prototype.commonUser);
+        users.forEach(function(testUser) {
+            var user = new TestUser(testUser);
             if(duplicates.indexOf(user > -1)) {
-                deferred.promise = user.softDeleteThreads();
-                promises.push(deferred.promise);
-                duplicates.push(user);
+                deferred.promise = user.getThreads(function(response) {
+                    var threadSummaries = response.body.userThreadSummaries;
+                    if(threadSummaries.length > 0) {
+                        threadSummaries.forEach(function (thread) {
+                            var promise = user.softDeleteThread(thread);
+                            promises.push(promise);
+                        });
+                    }
+                    promises.push(deferred.promise);
+                    duplicates.push(user);
+                });
             }
         });
         return q.all(promises);
     }
 
+    this.getRandomString = function() {
+        return getRandomString();
+    };
+
+    function getRandomString() {
+        var str = Math.random().toString(36);
+        var rndStr = str.slice(2, 18);
+        return rndStr;
+    }
+
+    this.switchUser = function(newUser) {
+        base.cookieUtils.setSessionCookie(newUser.fsSessionId);
+        browser.refresh();
+        browser.get(browser.testEnv.rootUrl + '/messaging/mailbox');
+    };
+
     this.deleteAllUserSessions = function() {
-        TestHelper.prototype.testUsers.forEach(function(testUser) {
-            base.loginService.deleteSession(testUser.value.fsSessionId);
+        var users = TEST_USERS.slice();
+        users.push(TestHelper.prototype.commonUser);
+        users.forEach(function(testUser) {
+            base.loginService.deleteSession(testUser.fsSessionId);
         });
     };
 
-    //element should be an elementFinder from a page
-    this.getValue = function(element) {
-        var promise = protractor.promise.when(element);
-        promise.then(function(elementFinder) {
-            return elementFinder;
-        });
+    this.sortBy = function(property) {
+        var sortOrder = 1;
+        if(property[0] === "-") {
+            sortOrder = -1;
+            property = property.substr(1);
+        }
+        return function(a,b) {
+            var result = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0;
+            return result * sortOrder;
+        }
     };
+
 };
 
 module.exports = TestHelper;

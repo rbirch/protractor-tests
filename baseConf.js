@@ -18,10 +18,9 @@
 
 var q = require('q');
 var testConfig = (new (require('qa-shared-base/lib/config/testConfig.js'))(__dirname)).getConfig();
-//var setup = (new (require('./util/Setup.js')));
+var path = require('path');
 
 exports.config = {
-
   afterLaunch:testConfig.afterLaunch,
 
   // The timeout in milliseconds for each script run on the browser. This should
@@ -59,13 +58,13 @@ exports.config = {
       //  //browserName: 'phantomjs',
       //  //'phantomjs.binary.path': require('phantomjs').path,
       //  name: "Acceptance test",
-      //
-      //  proxy: {
-      //    proxyType: "PAC",
-      //    proxyAutoconfigUrl: "https://gf.familysearch.org/gf-r1-2.pac"
-      //  }
-      //
-      //},
+      capabilities: {
+        browserName: 'chrome',
+        proxy: {
+          proxyType: "PAC",
+          proxyAutoconfigUrl: "https://gf.familysearch.org/gf-r9-1.pac"
+        }
+      },
 
       // Test framework to use. This may be one of:
       //  jasmine, jasmine2, cucumber, mocha or custom.
@@ -118,12 +117,29 @@ exports.config = {
   //       console.log('Executing capability', config.capabilities);
   //     });
 
-  //onPrepare: function() {
-  //  testConfig.onPrepare;
-  //  //testConfig.onPrepare(testConfig.beforeLaunchLogin,  testConfig.afterLaunchLogin, testConfig.generateHTMLReport);
-  //  //'./util/Setup.js';
-  //},
-  onPrepare: testConfig.onPrepare,
+  onPrepare: function() {
+    try {
+      console.log("./util.TestHelper.js = %s", path.resolve("./util/TestHelper.js"));
+      console.log("__dirname = %s", path.resolve(__dirname));
+
+      //var blah = require(__dirname + './util/TestHelper.js');
+    }catch(error) {
+      console.log('ERROR! ' + error);
+    }
+    //console.log('calling testConfig.onPrepare');
+    //var x = 'blah';
+    //console.log(x);
+    //
+    //var func = new Function('/util/TestHelper.setup()');
+    //console.log('func:' + func);
+    //func();
+    return testConfig.onPrepare();
+
+
+    //testConfig.onPrepare(testConfig.beforeLaunchLogin,  testConfig.afterLaunchLogin, testConfig.generateHTMLReport);
+    //'./util/Setup.js';
+  },
+  //onPrepare: testConfig.onPrepare,
 
       // The params object will be passed directly to the Protractor instance,
       // and can be accessed from your test as browser.params. It is an arbitrary

@@ -1,7 +1,8 @@
 /**
  * Created by rob birch on 5/6/2016.
  */
-var testHelper = new (require('../util/TestHelper.js'));
+//var testHelper = new (require('../util/TestHelper.js'));
+//var q = require('q');
 
 var mailboxPage = function() {
     var until = protractor.ExpectedConditions;
@@ -9,39 +10,29 @@ var mailboxPage = function() {
     var spinner = element(by.className("fsmb-mailbox__spinner-shell"));
     browser.wait(until.invisibilityOf(spinner));
 
-    //this.getValue = function(element) {
-    //    return element.getText().then(function(text){
-    //        //console.log("text: " + text);
-    //        return text; });
-    //};
-
-    this.getValue = function(elementFinder) {
-        var promise = protractor.promise.when(elementFinder);
-        var text = promise.then(function(text) {
-            return text;
-        });
-        return text;
-    };
-
     this.getMessageCount = function() {
         browser.wait(until.invisibilityOf(spinner));
-        //var elementFinder = element(by.css('span[class$="message-counts__messages"]'));//.getText();
-
         return element(by.css('span[class$="message-counts__messages"]')).getText();
-        //return count;
     };
 
     this.getNoMessagesText = function() {
-        return element(by.css("div[class='empty-state-wrapper']").getText());
+        browser.wait(until.invisibilityOf(spinner));
+        return element(by.css("div[class='empty-state-wrapper']")).getText();
+    };
+
+    this.getDeleteLink = function() {
+        browser.wait(until.invisibilityOf(spinner));
+        return element(by.css('button[data-cmd="showDeleteThreadModal"]'));
     };
 
     this.getDeleteConversationDialogYesButton = function() {
-        var dialog = element(by.css("div[class='fs-modal']"));
+        var dialog = element.all(by.css("div[class='fs-modal']")).get(0);
         browser.wait(until.visibilityOf(dialog));
         return dialog.element(by.css("button[data-cmd='deleteThread']"));
     };
 
-    var getReportAbuseLink = function() {
+    this.getReportAbuseLink = function() {
+        browser.wait(until.invisibilityOf(spinner));
         return element(by.css("button[data-cmd='showReportAbuseModal']"));
     };
 
@@ -51,7 +42,6 @@ var mailboxPage = function() {
 
     // New Message Dialog
     this.NewMessageDialog = function() {
-        //var newMessageDialog = element(by.css('div[class="fs-dlg"]'));
         var newMessageDialog = element.all(by.css('div[data-dialog-uid="0"]')).get(0);
 
         newMessageDialog.getToTextField = function() {
@@ -64,46 +54,65 @@ var mailboxPage = function() {
             return el.getText();
         };
 
+        newMessageDialog.getSendButton = function() {
+            return newMessageDialog.element(by.id('submit-button'))
+        };
+
+        newMessageDialog.getCancelLink = function() {
+            return newMessageDialog.element(by.id('cancel-button'))
+        };
+
         return newMessageDialog;
     };
 
-
     // Thread Frame
     this.ThreadFrame = function() {
+        browser.wait(until.invisibilityOf(spinner));
         var threadFrame =  element(by.css('div[class="fsmb-thread-list"]'));
 
         threadFrame.getNewMessageButton = function() {
+            browser.wait(until.invisibilityOf(spinner));
             return threadFrame.element(by.css('button[class="fsmb-send-message-button fs-button ng-scope"]'));
         };
 
-        //threadFrame.getThreadCount = function() {
-        //    return getThreadButtons().length;
-        //};
-        //
-        //this.getThreadButtonByIndex = function(index) {
-        //    return getThreadButtons().get(index);
-        //};
-        //
-        //this.getThreadIdForThreadButton = function(index) {
-        //    return getThreadButtonByIndex(index).getAttribute("data-test-thread-id");
-        //};
-        //
-        //this.getThreadIdsForAllVisibleThreadButtons = function() {
-        //    var threadIds = [];
-        //    for(var idx = 0; idx < getThreadCount(); idx++) {
-        //        threadIds.push(getThreadIdForThreadButton(idx));
-        //    }
-        //    return threadIds;
-        //};
-        //
-        //this.getThreadButtonIndexByThreadId = function(threadId) {
-        //    var elem = getThreadButtonIndexByThreadId(threadId);
-        //    return getThreadButtons().indexOf(elem);
-        //};
-        //
-        //this.getThreadButtonByThreadId = function(threadId) {
-        //    return threadFrame.element(by.css("button[data-test-thread-id='" + threadId + "']")).getText();
-        //};
+        threadFrame.getThreadButtonByIndex = function(index) {
+            return threadFrame.getThreadButtons().get(index);
+        };
+
+        threadFrame.getThreadIdForThreadButton = function(index) {
+            var threadButton = threadFrame.getThreadButtonByIndex(index);
+            return threadButton.getAttribute('data-test-thread-id')
+                .then(function(id) {
+                    return id;
+                });
+        };
+
+        threadFrame.getThreadIdsForAllVisibleThreadButtons = function() {
+            //browser.sleep(1000);
+            return threadFrame.getThreadButtons()
+                .map(function(elem) {
+                    return elem.getAttribute('data-test-thread-id');
+                })
+        };
+
+        threadFrame.getThreadButtonIndexByThreadId = function(threadId, callback) {
+            threadFrame.getThreadButtons().then(function(threadButtons) {
+                threadButtons.filter(function (elem, index) {
+                    elem.getAttribute('data-test-thread-id')
+                    .then(function (value) {
+                        if (value === threadId) {
+                            callback(index);
+                        }
+                    });
+                });
+            });
+        };
+
+
+        threadFrame.getThreadButtonByThreadId = function(threadId) {
+            browser.wait(until.invisibilityOf(spinner));
+            return threadFrame.element(by.css("button[data-test-thread-id='" + threadId + "']"));
+        };
         //
         //this.getThreadRecipientNameByThreadId = function(threadId) {
         //    return getThreadButtonByThreadId(threadId)element(by.css("[class$='name ng-binding']")).getText();
@@ -113,81 +122,100 @@ var mailboxPage = function() {
         //    return getThreadButtonByThreadId(threadId).element(by.css("[class$='date ng-binding']")).getText();
         //};
         //
-        //this.getThreadAboutByThreadId = function(threadId) {
-        //    return getThreadButtonByThreadId(threadId).element(by.css("[class$='about ng-binding']")).getText();
-        //};
-        //
-        //this.getThreadSubjectByThreadId = function(threadId) {
-        //    return getThreadButtonByThreadId(threadId).element(y.css("[class$='subject ng-binding']")).getText();
-        //};
-        //
-        //this.checkForLoadMoreThreadsLink = function() {
-        //    return threadFrame.element(by.css("button[data-fs-click^='loadMoreThreads']")).isDisplayed();
-        //};
-        //
-        //this.clickLoadMoreThreadsLink = function() {
-        //    threadFrame.element(by.css("button[data-fs-click^='loadMoreThreads']")).click();
-        //    browser.wait(until.invisibilityOf(by.css("div[class='ng-show']")));
-        //};
+        threadFrame.getThreadAboutByThreadId = function(threadId) {
+            return threadFrame.getThreadButtonByThreadId(threadId).element(by.css("[class$='about ng-binding']")).getText();
+        };
 
-        //this.displayAllThreads = function() {
-        //    do {
-        //        if(checkForLoadMoreThreadsLink()) {
-        //            clickLoadMoreThreadsLink();
-        //            browser.wait(1000);
-        //        }
-        //        else {
-        //            break;
-        //        }
-        //    } while (true);
-        //};
+        threadFrame.getThreadSubjectByThreadId = function(threadId) {
+            return threadFrame.getThreadButtonByThreadId(threadId).element(by.css("[class$='subject ng-binding']")).getText();
+        };
 
-        //this.getThreadButtons = function() {
-        //    return threadFrame.all(by.css("button[data-thread='thread']"));
-        //};
+        threadFrame.checkForLoadMoreThreadsLink = function() {
+            return threadFrame.element(by.css("button[data-fs-click^='loadMoreThreads']")).isDisplayed();
+        };
+
+        threadFrame.getLoadMoreThreadsLink = function() {
+            return threadFrame.element(by.css("button[data-fs-click^='loadMoreThreads']"));
+        };
+
+        threadFrame.displayAllThreads = function() {
+            //do {
+                threadFrame.getLoadMoreThreadsLink().click();
+                browser.wait(until.invisibilityOf(element(by.css('div[data-ng-show="loadingMoreThreads"]'))));
+                //browser.wait(until.invisibilityOf(by.css('div[data-ng-show="loadingMoreThreads"]')));
+            //} while (threadFrame.getThreadCount() < testHelper.prototype.testThreads.length);
+        };
+
+        threadFrame.deleteAllThreads = function() {
+            threadFrame.displayAllThreads();
+            threadFrame.getThreadCount().then(function(count) {
+                var mailbox = new mailboxPage();
+                do {
+                    browser.wait(until.invisibilityOf(spinner));
+                    threadFrame.getThreadButtonByIndex(0).click();
+                    browser.wait(until.invisibilityOf(spinner));
+                    mailbox.getDeleteLink().click();
+                    mailbox.getDeleteConversationDialogYesButton().click();
+                }while(--count > 0);
+            });
+        };
+
+        threadFrame.getThreadCount = function() {
+            return threadFrame.getThreadButtons().then(function getCount(threadButtons) {
+                return threadButtons.length;
+            });
+        };
+
+        threadFrame.getThreadButtons = function() {
+            browser.wait(until.invisibilityOf(spinner));
+            return threadFrame.all(by.css('button[class^="thread-button"]'));
+        };
 
         return threadFrame;
     };
 
     // Message Frame
     this.MessageFrame = function() {
-        browser.wait(until.visibilityOf(by.css("div[class='fsmb-messages']")));
-        var messageFrame = by.css("div[class='fsmb-messages']");
+        var messageFrame = element(by.css('div[class="fsmb-messages"]'));
+        browser.wait(until.invisibilityOf(spinner));
 
-        var getThreadSubjectHeader = function() {
-            return messageFrame.by.css("[data-ng-bind-html='thread.subject']").getText();
+        messageFrame.getThreadSubjectHeader = function() {
+            return messageFrame.by.css('[data-ng-bind-html="thread.subject"]').getText();
         };
 
-        var getThreadAboutHeader = function() {
-            return messageFrame.by.css("div[class^='thread-about']").getText();
+        messageFrame.getThreadAboutHeader = function() {
+            return messageFrame.by.css('div[class^="thread-about"]').getText();
         };
 
-        var getMessageCount = function() {
-            return getAllMessagePanels().length();
+        messageFrame.getMessageCount = function() {
+            return messageFrame.getAllMessagePanels().then(function getCount(messagePanels) {
+                return messagePanels.length;
+            });
         };
 
-        var getMessageSender = function(index) {
-            return getAllMessagePanels().get(index).by.css("[class='fsmb-message-header']").getText();
+        messageFrame.getMessageSender = function(index) {
+            return messageFrame.getAllMessagePanels().get(index).element(by.css('[class="fsmb-message-header"]')).getText();
         };
 
-        var getMessageDate = function(index) {
-            return getAllMessagePanels().get(index).by.css("[class^='message-timestamp']").getText();
+        messageFrame.getMessageDate = function(index) {
+            return messageFrame.getAllMessagePanels().get(index).element(by.css('[class^="message-timestamp"]')).getText();
         };
 
-        var getMessageBody = function(index) {
-            return getAllMessagePanels().get(index).by.css("[class^='fsmb-message-body']").getText();
+        messageFrame.getMessageBody = function(index) {
+            return messageFrame.getAllMessagePanels().get(index).element(by.css('[class^="fsmb-message-body"]')).getText();
         };
 
-        var getLoggedInUserMessagePanels = function() {
-            return messageFrame.by.css("div[class$='ng-isolate-scope-mine']");
+        messageFrame.getLoggedInUserMessagePanels = function() {
+            return messageFrame.by.css('div[class$="ng-isolate-scope-mine"]');
         };
 
-        var getOtherUserMessagePanels = function() {
-            return messageFrame.by.css("div[class$='ng-isolate-scope']")
+        messageFrame.getOtherUserMessagePanels = function() {
+            return messageFrame.by.css('div[class$="ng-isolate-scope"]');
         };
 
-        var getAllMessagePanels = function() {
-            return messageFrame.all(by.css("div[data-message='message']"));
+        messageFrame.getAllMessagePanels = function() {
+            browser.wait(until.invisibilityOf(spinner));
+            return messageFrame.all(by.css('div[data-message="message"]'));
         };
 
         return messageFrame;
@@ -195,11 +223,15 @@ var mailboxPage = function() {
 
     // Reply Frame
     this.ReplyFrame = function() {
-        browser.wait(until.visibilityOf(by.className("reply-box")));
-        var replyFrame = by.className("reply-box");
+        var replyFrame = element(by.css('div[class^="reply-box"]'));
+        browser.wait(until.visibilityOf(replyFrame));
 
-        var getReplyTextBox = function() {
-            return replyFrame.by.name("replyMessage");
+        replyFrame.getReplyTextBox = function() {
+            return replyFrame.element(by.name("replyMessage"));
+        };
+
+        replyFrame.getSendButton = function() {
+            return replyFrame.element(by.css('button[class$="fs-send-button"]'))
         };
 
         return replyFrame;

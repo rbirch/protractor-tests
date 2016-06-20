@@ -22,6 +22,14 @@ var personPage = function(personId) {
         return element.all(by.css('a[class="contributorLink"]')).get(0);
     };
 
+    this.getPersonNotFoundHeader = function() {
+        return element(by.css('class="title fs-icon-before-filter-portraits-dark"'));
+    };
+
+    this.getPersonHeader = function() {
+        return element(by.css('span[data-test="full-name"]'));
+    };
+
     this.displayContactCard = function() {
         this.getOpenDetailsLink().click();
         this.getContributorLink().click();

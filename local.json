@@ -1,6 +1,5 @@
 {
     "baseHost":"beta.familysearch.org",
-
     "devKey":"V0NRWS03SjFRLUdLVlYtN0ROTS1TUTVNLTlRNUgtSlgzSC1DTUpL",
     "globalTimeout":20000,
     "localCode" : false,

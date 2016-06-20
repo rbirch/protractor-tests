@@ -1,5 +1,5 @@
 /**
- * Created by jorobi on 5/17/2016.
+ * Created by rob birch on 5/17/2016.
  */
 
 var q = require('q');
@@ -10,15 +10,17 @@ var agent = require('superagent-promise')(superAgent, promise);
 function TestUser(testUser) {
     this.cisId = testUser.cisId;
     this.fsSessionId = testUser.fsSessionId;
+    this.userName = testUser.username;
     var cisId = testUser.cisId;
     var fsSessionId = testUser.fsSessionId;
 
-    this.softDeleteThreads = function() {
+
+    this.getThreads = function(callback) {
         var defer = q.defer();
-        var userThreadUrl = browser.testEnv.rootUrl + '/fst/fs-messages/users/' + cisId + '/threads';
+        var url = browser.testEnv.rootUrl + '/fst/fs-messages/users/' + cisId + '/threads?pageSize=100';
         var promises = [];
 
-        agent.get(userThreadUrl)
+        agent.get(url)
             .send()
             .accept('application/json')
             .set('Content-Type', 'application/json')
@@ -26,30 +28,22 @@ function TestUser(testUser) {
             .end()
             .then(function onSuccess(response) {
                 var threadCount = response.body.userThreadSummaries.length;
-                console.log('soft delete.. api get to ' + userThreadUrl + ' retrieved ' + threadCount + ' threads..  response: ' + response.status);
-
-                if(threadCount > 0) {
-                    response.body.userThreadSummaries.forEach(
-                        defer.promise = softDeleteThread);
-                        promises.push(defer.promise);
-                }
-                else {
-                    defer.resolve();
-                }
-                //return defer.promise;
+                console.log('get user threads.. api get to ' + url + ' retrieved ' + threadCount + ' threads..  response: ' + response.status);
+                defer.resolve();
+                callback(response);
                 return q.all(promises);
             },
             function onFailure(response) {
-                console.log('soft delete.. api get to ' + url + ' failed.. reason: ' + response.error.text);
+                console.log('get user threads.. api get to ' + url + ' failed.. reason: ' + response.error.text);
                 defer.resolve();
                 return q.all(promises);
             });
         return q.all(promises);
     };
 
-    function softDeleteThread(element, index, array) {
+    this.softDeleteThread = function(thread) {
         var defer = q.defer();
-        var url = browser.testEnv.rootUrl + '/fst/fs-messages/threads/' + element.threadId + '/users/' + cisId + '/state';
+        var url = browser.testEnv.rootUrl + '/fst/fs-messages/threads/' + thread.threadId + '/users/' + cisId + '/state';
 
         agent.put(url)
             .send(JSON.stringify({status : 'TRASH'}))
@@ -63,12 +57,12 @@ function TestUser(testUser) {
                 return defer.promise;
             },
                 function onFailure(response) {
-                console.log('thread soft delete - api put to ' + url + ' failed.. - reason: ' + response.error.text);
+                console.log('thread soft delete - api put to ' + url + ' failed.. - reason: ' + response.response.error.message);
                 defer.resolve();
                 return defer.promise;
             });
         return defer.promise;
-    }
+    };
 }
 
 module.exports = TestUser;
